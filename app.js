@@ -40,6 +40,82 @@ const NOTE_NAMES = Array.from({ length: NOTE_COUNT }, (_, index) =>
   Tone.Frequency(TOP_MIDI - index, "midi").toNote()
 );
 
+const GUIDE_DRAG_MIME = "application/x-orchestrion-guide";
+
+const PREMADE_GUIDES = [
+  {
+    id: "major-lift",
+    name: "Major Lift",
+    description: "Optimistic triad climb",
+    events: [
+      { step: 0, semitone: 0, velocity: 0.82 },
+      { step: 2, semitone: 4, velocity: 0.75 },
+      { step: 4, semitone: 7, velocity: 0.78 },
+      { step: 6, semitone: 12, velocity: 0.9 },
+    ],
+  },
+  {
+    id: "minor-arp",
+    name: "Minor Arp",
+    description: "Moody rolling arpeggio",
+    events: [
+      { step: 0, semitone: 0, velocity: 0.74 },
+      { step: 1, semitone: 3, velocity: 0.65 },
+      { step: 2, semitone: 7, velocity: 0.7 },
+      { step: 3, semitone: 10, velocity: 0.67 },
+      { step: 4, semitone: 12, velocity: 0.76 },
+      { step: 5, semitone: 10, velocity: 0.64 },
+      { step: 6, semitone: 7, velocity: 0.68 },
+      { step: 7, semitone: 3, velocity: 0.62 },
+    ],
+  },
+  {
+    id: "edm-pluck",
+    name: "EDM Pluck Run",
+    description: "Fast hook starter",
+    events: [
+      { step: 0, semitone: 0, velocity: 0.88 },
+      { step: 1, semitone: 7, velocity: 0.8 },
+      { step: 2, semitone: 12, velocity: 0.84 },
+      { step: 3, semitone: 7, velocity: 0.77 },
+      { step: 4, semitone: 0, velocity: 0.82 },
+      { step: 5, semitone: 5, velocity: 0.75 },
+      { step: 6, semitone: 10, velocity: 0.79 },
+      { step: 7, semitone: 5, velocity: 0.72 },
+    ],
+  },
+  {
+    id: "drum-four-floor",
+    name: "Four-on-Floor",
+    description: "Kick + hat pulse guide",
+    events: [
+      { step: 0, semitone: 0, velocity: 0.95 },
+      { step: 2, semitone: 7, velocity: 0.62 },
+      { step: 4, semitone: 0, velocity: 0.92 },
+      { step: 6, semitone: 7, velocity: 0.6 },
+      { step: 8, semitone: 0, velocity: 0.95 },
+      { step: 10, semitone: 7, velocity: 0.62 },
+      { step: 12, semitone: 0, velocity: 0.93 },
+      { step: 14, semitone: 7, velocity: 0.6 },
+    ],
+  },
+  {
+    id: "cinematic-rise",
+    name: "Cinematic Rise",
+    description: "Tension build motif",
+    events: [
+      { step: 0, semitone: 0, velocity: 0.5 },
+      { step: 2, semitone: 2, velocity: 0.54 },
+      { step: 4, semitone: 5, velocity: 0.58 },
+      { step: 6, semitone: 7, velocity: 0.63 },
+      { step: 8, semitone: 9, velocity: 0.7 },
+      { step: 10, semitone: 12, velocity: 0.78 },
+      { step: 12, semitone: 14, velocity: 0.84 },
+      { step: 14, semitone: 16, velocity: 0.9 },
+    ],
+  },
+];
+
 const TRACK_COLORS = ["#bf5f2f", "#1a7c79", "#a2413e", "#5f6fbb", "#b27a2d", "#3f8a52", "#9e3651", "#6e54a8"];
 
 const INSTRUMENTS = {
@@ -219,6 +295,7 @@ const ui = {
   addTrackBtn: document.getElementById("addTrackBtn"),
   clearTrackBtn: document.getElementById("clearTrackBtn"),
   trackList: document.getElementById("trackList"),
+  phraseLibrary: document.getElementById("phraseLibrary"),
   pianoRoll: document.getElementById("pianoRoll"),
   mixerStrips: document.getElementById("mixerStrips"),
   masterMeterFill: document.getElementById("masterMeterFill"),
@@ -369,6 +446,10 @@ function getTrackById(trackId) {
 
 function getSelectedTrack() {
   return getTrackById(selectedTrackId) || tracks[0] || null;
+}
+
+function getGuideById(guideId) {
+  return PREMADE_GUIDES.find((guide) => guide.id === guideId) || null;
 }
 
 function createPattern() {
@@ -1442,6 +1523,160 @@ function renderTrackList() {
   }
 }
 
+function renderPhraseLibrary() {
+  if (!ui.phraseLibrary) {
+    return;
+  }
+
+  ui.phraseLibrary.innerHTML = PREMADE_GUIDES.map((guide) => {
+    return `
+      <article class="phrase-card" draggable="true" data-guide-id="${guide.id}" aria-label="${escapeHtml(guide.name)}">
+        <div class="phrase-card-title">${escapeHtml(guide.name)}</div>
+        <div class="phrase-card-note">${escapeHtml(guide.description)}</div>
+        <button class="btn btn-subtle" type="button" data-guide-action="preview" data-guide-id="${guide.id}">Preview</button>
+      </article>
+    `;
+  }).join("");
+}
+
+async function previewGuide(guideId) {
+  const guide = getGuideById(guideId);
+  const track = getSelectedTrack();
+
+  if (!guide || !track) {
+    return;
+  }
+
+  await ensureAudioReady();
+
+  const baseMidi = 60;
+  const stepSeconds = Tone.Time("16n").toSeconds();
+  const startTime = Tone.now() + 0.05;
+  const minMidi = TOP_MIDI - (NOTE_COUNT - 1);
+  const maxMidi = TOP_MIDI;
+
+  for (const event of guide.events) {
+    const targetMidi = clamp(baseMidi + asNumber(event.semitone, 0), minMidi, maxMidi);
+    const noteName = Tone.Frequency(targetMidi, "midi").toNote();
+    const velocity = clamp01(asNumber(event.velocity, DEFAULT_NOTE_VELOCITY));
+    triggerTrackAttackRelease(
+      track,
+      noteName,
+      stepSeconds * 0.95,
+      startTime + asNumber(event.step, 0) * stepSeconds,
+      velocity,
+      LIVE_VELOCITY_SCALE
+    );
+  }
+
+  setStatus(`Previewing guide: ${guide.name}.`);
+}
+
+function insertGuideAtCell(guideId, anchorNoteIndex, anchorStep) {
+  const guide = getGuideById(guideId);
+  const track = getSelectedTrack();
+
+  if (!guide || !track) {
+    return;
+  }
+
+  const anchorNoteName = NOTE_NAMES[anchorNoteIndex];
+  if (!anchorNoteName) {
+    return;
+  }
+
+  pushHistorySilent();
+
+  const anchorMidi = Math.round(Tone.Frequency(anchorNoteName).toMidi());
+  let written = 0;
+
+  for (const event of guide.events) {
+    const step = (anchorStep + asNumber(event.step, 0)) % loopSteps;
+    const targetMidi = Math.round(anchorMidi + asNumber(event.semitone, 0));
+    const targetNoteIndex = midiNoteToPatternIndex(targetMidi);
+
+    if (targetNoteIndex < 0) {
+      continue;
+    }
+
+    track.pattern[targetNoteIndex][step] = clamp01(asNumber(event.velocity, DEFAULT_NOTE_VELOCITY));
+    written += 1;
+  }
+
+  renderPianoRoll();
+
+  if (written > 0) {
+    setStatus(`Inserted guide ${guide.name} into ${track.name}.`);
+  } else {
+    setStatus(`Guide ${guide.name} could not fit in this note range.`, true);
+  }
+}
+
+function onPhraseLibraryDragStart(event) {
+  const card = event.target instanceof HTMLElement ? event.target.closest(".phrase-card") : null;
+  if (!(card instanceof HTMLElement) || !event.dataTransfer) {
+    return;
+  }
+
+  const guideId = card.dataset.guideId;
+  if (!guideId) {
+    return;
+  }
+
+  event.dataTransfer.setData(GUIDE_DRAG_MIME, guideId);
+  event.dataTransfer.setData("text/plain", guideId);
+  event.dataTransfer.effectAllowed = "copy";
+}
+
+function onPhraseLibraryClick(event) {
+  const button = event.target instanceof HTMLElement ? event.target.closest("button[data-guide-action='preview']") : null;
+  if (!(button instanceof HTMLButtonElement)) {
+    return;
+  }
+
+  const guideId = button.dataset.guideId;
+  if (!guideId) {
+    return;
+  }
+
+  previewGuide(guideId);
+}
+
+function onPianoRollDragOver(event) {
+  const cell = event.target instanceof HTMLElement ? event.target.closest(".step-cell") : null;
+  if (!cell || !event.dataTransfer) {
+    return;
+  }
+
+  const transferTypes = Array.from(event.dataTransfer.types);
+  const hasGuidePayload = transferTypes.includes(GUIDE_DRAG_MIME) || transferTypes.includes("text/plain");
+  if (hasGuidePayload) {
+    event.preventDefault();
+    event.dataTransfer.dropEffect = "copy";
+  }
+}
+
+function onPianoRollDrop(event) {
+  const cell = event.target instanceof HTMLElement ? event.target.closest(".step-cell") : null;
+  if (!(cell instanceof HTMLElement) || !event.dataTransfer) {
+    return;
+  }
+
+  const guideId = event.dataTransfer.getData(GUIDE_DRAG_MIME) || event.dataTransfer.getData("text/plain");
+  if (!guideId) {
+    return;
+  }
+
+  const noteIndex = asNumber(cell.dataset.note, -1);
+  const stepIndex = asNumber(cell.dataset.step, -1);
+  if (noteIndex < 0 || stepIndex < 0) {
+    return;
+  }
+
+  event.preventDefault();
+  insertGuideAtCell(guideId, noteIndex, stepIndex);
+}
+
 function renderPianoRoll() {
   const selected = getSelectedTrack();
   if (!selected) {
@@ -1558,6 +1793,7 @@ function renderMixer() {
 
 function renderAll() {
   renderTrackList();
+  renderPhraseLibrary();
   renderPianoRoll();
   renderMixer();
 }
@@ -2411,8 +2647,15 @@ function bindEvents() {
 
   ui.trackList.addEventListener("click", onTrackListClick);
 
+  if (ui.phraseLibrary) {
+    ui.phraseLibrary.addEventListener("dragstart", onPhraseLibraryDragStart);
+    ui.phraseLibrary.addEventListener("click", onPhraseLibraryClick);
+  }
+
   ui.pianoRoll.addEventListener("pointerdown", onPianoRollPointerDown);
   ui.pianoRoll.addEventListener("pointerover", onPianoRollPointerOver);
+  ui.pianoRoll.addEventListener("dragover", onPianoRollDragOver);
+  ui.pianoRoll.addEventListener("drop", onPianoRollDrop);
   window.addEventListener("pointerup", onPianoRollPointerUp);
 
   ui.mixerStrips.addEventListener("input", onMixerInput);

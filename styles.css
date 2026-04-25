@@ -448,6 +448,70 @@ output {
   padding-right: 2px;
 }
 
+.phrase-guide {
+  border: 1px solid rgba(160, 181, 214, 0.24);
+  border-radius: var(--radius-md);
+  background: linear-gradient(180deg, rgba(13, 24, 40, 0.9), rgba(9, 18, 31, 0.93));
+  padding: 0.58rem;
+  display: grid;
+  gap: 0.45rem;
+}
+
+.phrase-guide-head {
+  display: grid;
+  gap: 0.18rem;
+}
+
+.phrase-guide-head h3 {
+  margin: 0;
+  font-family: "Cormorant Garamond", "Times New Roman", serif;
+  font-size: 1.2rem;
+  line-height: 0.95;
+  color: #edf4ff;
+}
+
+.phrase-guide-head p {
+  margin: 0;
+  color: var(--ink-soft);
+  font-size: 0.8rem;
+}
+
+.phrase-library {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 0.48rem;
+}
+
+.phrase-card {
+  border: 1px solid rgba(162, 184, 218, 0.28);
+  border-radius: var(--radius-sm);
+  padding: 0.45rem;
+  background: linear-gradient(180deg, rgba(23, 35, 55, 0.9), rgba(14, 25, 40, 0.93));
+  display: grid;
+  gap: 0.35rem;
+  cursor: grab;
+}
+
+.phrase-card:active {
+  cursor: grabbing;
+}
+
+.phrase-card-title {
+  font-size: 0.86rem;
+  font-weight: 800;
+  color: #ebf4ff;
+}
+
+.phrase-card-note {
+  font-size: 0.75rem;
+  color: var(--ink-soft);
+}
+
+.phrase-card .btn {
+  padding: 0.35rem 0.5rem;
+  font-size: 0.78rem;
+}
+
 .track-chip {
   border: 1px solid rgba(176, 196, 227, 0.32);
   background: linear-gradient(180deg, rgba(23, 37, 58, 0.95), rgba(14, 25, 40, 0.95));
