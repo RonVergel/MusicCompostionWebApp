@@ -255,6 +255,12 @@ const INSTRUMENT_MIDI_PROGRAMS = {
 };
 
 const ui = {
+  composer: document.querySelector(".composer"),
+  rollScroll: document.querySelector(".roll-scroll"),
+  composerFullscreenBtn: document.getElementById("composerFullscreenBtn"),
+  composerCloseBtn: document.getElementById("composerCloseBtn"),
+  composerModalBackdrop: document.getElementById("composerModalBackdrop"),
+  chordCompactToggleBtn: document.getElementById("chordCompactToggleBtn"),
   playBtn: document.getElementById("playBtn"),
   stopBtn: document.getElementById("stopBtn"),
   metronomeBtn: document.getElementById("metronomeBtn"),
@@ -373,6 +379,8 @@ const midiState = {
 };
 
 let yamahaLastAnalysis = null;
+let composerModalOpen = false;
+let chordPaletteCompact = false;
 
 function clamp(number, min, max) {
   return Math.min(max, Math.max(min, number));
@@ -806,6 +814,54 @@ function setMidiFeedback(message, isError = false) {
 
 function setYamahaFeedback(message, isError = false) {
   setIntegrationFeedback(ui.yamahaSummary, message, isError);
+}
+
+function setComposerModalState(isOpen) {
+  composerModalOpen = Boolean(isOpen);
+  document.body.classList.toggle("composer-modal-open", composerModalOpen);
+
+  if (ui.composerModalBackdrop) {
+    ui.composerModalBackdrop.hidden = !composerModalOpen;
+  }
+
+  if (ui.composerFullscreenBtn) {
+    ui.composerFullscreenBtn.textContent = composerModalOpen ? "Exit Fullscreen" : "Open Fullscreen";
+    ui.composerFullscreenBtn.setAttribute("aria-expanded", composerModalOpen ? "true" : "false");
+  }
+}
+
+function toggleComposerModal() {
+  setComposerModalState(!composerModalOpen);
+}
+
+function setChordPaletteCompactState(isCompact) {
+  chordPaletteCompact = Boolean(isCompact);
+
+  if (ui.phraseLibrary) {
+    ui.phraseLibrary.classList.toggle("compact", chordPaletteCompact);
+  }
+
+  if (ui.chordCompactToggleBtn) {
+    ui.chordCompactToggleBtn.textContent = chordPaletteCompact ? "Compact: On" : "Compact: Off";
+    ui.chordCompactToggleBtn.setAttribute("aria-pressed", chordPaletteCompact ? "true" : "false");
+  }
+}
+
+function toggleChordPaletteCompact() {
+  setChordPaletteCompactState(!chordPaletteCompact);
+}
+
+function onRollScrollWheel(event) {
+  if (!(event.currentTarget instanceof HTMLElement)) {
+    return;
+  }
+
+  if (!event.shiftKey || Math.abs(event.deltaY) <= Math.abs(event.deltaX)) {
+    return;
+  }
+
+  event.preventDefault();
+  event.currentTarget.scrollLeft += event.deltaY;
 }
 
 function supportsWebMidi() {
@@ -1526,6 +1582,8 @@ function renderPhraseLibrary() {
       </article>
     `;
   }).join("");
+
+  ui.phraseLibrary.classList.toggle("compact", chordPaletteCompact);
 }
 
 async function previewChord(chordId) {
@@ -2638,6 +2696,30 @@ function bindEvents() {
 
   ui.trackList.addEventListener("click", onTrackListClick);
 
+  if (ui.composerFullscreenBtn) {
+    ui.composerFullscreenBtn.addEventListener("click", () => {
+      toggleComposerModal();
+    });
+  }
+
+  if (ui.composerCloseBtn) {
+    ui.composerCloseBtn.addEventListener("click", () => {
+      setComposerModalState(false);
+    });
+  }
+
+  if (ui.composerModalBackdrop) {
+    ui.composerModalBackdrop.addEventListener("click", () => {
+      setComposerModalState(false);
+    });
+  }
+
+  if (ui.chordCompactToggleBtn) {
+    ui.chordCompactToggleBtn.addEventListener("click", () => {
+      toggleChordPaletteCompact();
+    });
+  }
+
   if (ui.phraseLibrary) {
     ui.phraseLibrary.addEventListener("dragstart", onPhraseLibraryDragStart);
     ui.phraseLibrary.addEventListener("click", onPhraseLibraryClick);
@@ -2648,6 +2730,10 @@ function bindEvents() {
   ui.pianoRoll.addEventListener("dragover", onPianoRollDragOver);
   ui.pianoRoll.addEventListener("drop", onPianoRollDrop);
   window.addEventListener("pointerup", onPianoRollPointerUp);
+
+  if (ui.rollScroll) {
+    ui.rollScroll.addEventListener("wheel", onRollScrollWheel, { passive: false });
+  }
 
   ui.mixerStrips.addEventListener("input", onMixerInput);
   ui.mixerStrips.addEventListener("change", onMixerChange);
@@ -2773,6 +2859,12 @@ function bindEvents() {
   document.addEventListener("keydown", (event) => {
     const key = event.key.toLowerCase();
 
+    if (event.key === "Escape" && composerModalOpen) {
+      event.preventDefault();
+      setComposerModalState(false);
+      return;
+    }
+
     if (event.code === "Space" && !isTextInputElement(event.target)) {
       event.preventDefault();
       togglePlayback();
@@ -2819,6 +2911,7 @@ function initialize() {
   initializeIntegrationPanels();
   populateInstrumentPicker();
   bindEvents();
+  setChordPaletteCompactState(false);
   applyTransportControls();
   updateTransportOptionButtons();
   updateHistoryButtons();
@@ -2834,5 +2927,21 @@ function initialize() {
   updateMasterMeter();
   refreshPlayButton();
 }
+
+const openBtn = document.getElementById("openFullscreen");
+const closeBtn = document.getElementById("closeFullscreen");
+const modal = document.getElementById("composerModal");
+const composer = document.getElementById("composerContainer");
+const modalWrapper = document.getElementById("modalComposerWrapper");
+
+openBtn.onclick = () => {
+  modal.classList.add("active");
+  modalWrapper.appendChild(composer);
+};
+
+closeBtn.onclick = () => {
+  modal.classList.remove("active");
+  document.body.appendChild(composer);
+};
 
 initialize();
