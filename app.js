@@ -40,81 +40,55 @@ const NOTE_NAMES = Array.from({ length: NOTE_COUNT }, (_, index) =>
   Tone.Frequency(TOP_MIDI - index, "midi").toNote()
 );
 
-const GUIDE_DRAG_MIME = "application/x-orchestrion-guide";
+const CHORD_DRAG_MIME = "application/x-orchestrion-chord";
 
-const PREMADE_GUIDES = [
-  {
-    id: "major-lift",
-    name: "Major Lift",
-    description: "Optimistic triad climb",
-    events: [
-      { step: 0, semitone: 0, velocity: 0.82 },
-      { step: 2, semitone: 4, velocity: 0.75 },
-      { step: 4, semitone: 7, velocity: 0.78 },
-      { step: 6, semitone: 12, velocity: 0.9 },
-    ],
-  },
-  {
-    id: "minor-arp",
-    name: "Minor Arp",
-    description: "Moody rolling arpeggio",
-    events: [
-      { step: 0, semitone: 0, velocity: 0.74 },
-      { step: 1, semitone: 3, velocity: 0.65 },
-      { step: 2, semitone: 7, velocity: 0.7 },
-      { step: 3, semitone: 10, velocity: 0.67 },
-      { step: 4, semitone: 12, velocity: 0.76 },
-      { step: 5, semitone: 10, velocity: 0.64 },
-      { step: 6, semitone: 7, velocity: 0.68 },
-      { step: 7, semitone: 3, velocity: 0.62 },
-    ],
-  },
-  {
-    id: "edm-pluck",
-    name: "EDM Pluck Run",
-    description: "Fast hook starter",
-    events: [
-      { step: 0, semitone: 0, velocity: 0.88 },
-      { step: 1, semitone: 7, velocity: 0.8 },
-      { step: 2, semitone: 12, velocity: 0.84 },
-      { step: 3, semitone: 7, velocity: 0.77 },
-      { step: 4, semitone: 0, velocity: 0.82 },
-      { step: 5, semitone: 5, velocity: 0.75 },
-      { step: 6, semitone: 10, velocity: 0.79 },
-      { step: 7, semitone: 5, velocity: 0.72 },
-    ],
-  },
-  {
-    id: "drum-four-floor",
-    name: "Four-on-Floor",
-    description: "Kick + hat pulse guide",
-    events: [
-      { step: 0, semitone: 0, velocity: 0.95 },
-      { step: 2, semitone: 7, velocity: 0.62 },
-      { step: 4, semitone: 0, velocity: 0.92 },
-      { step: 6, semitone: 7, velocity: 0.6 },
-      { step: 8, semitone: 0, velocity: 0.95 },
-      { step: 10, semitone: 7, velocity: 0.62 },
-      { step: 12, semitone: 0, velocity: 0.93 },
-      { step: 14, semitone: 7, velocity: 0.6 },
-    ],
-  },
-  {
-    id: "cinematic-rise",
-    name: "Cinematic Rise",
-    description: "Tension build motif",
-    events: [
-      { step: 0, semitone: 0, velocity: 0.5 },
-      { step: 2, semitone: 2, velocity: 0.54 },
-      { step: 4, semitone: 5, velocity: 0.58 },
-      { step: 6, semitone: 7, velocity: 0.63 },
-      { step: 8, semitone: 9, velocity: 0.7 },
-      { step: 10, semitone: 12, velocity: 0.78 },
-      { step: 12, semitone: 14, velocity: 0.84 },
-      { step: 14, semitone: 16, velocity: 0.9 },
-    ],
-  },
+const PITCH_CLASS_NAMES = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
+
+const CHORD_ROOTS = PITCH_CLASS_NAMES.map((name, pitchClass) => ({
+  id: name.replace("#", "-sharp").toLowerCase(),
+  name,
+  pitchClass,
+}));
+
+const CHORD_QUALITIES = [
+  { id: "major", name: "Major", intervals: [0, 4, 7, 12] },
+  { id: "minor", name: "Minor", intervals: [0, 3, 7, 12] },
+  { id: "diminished", name: "Diminished", intervals: [0, 3, 6, 12] },
+  { id: "augmented", name: "Augmented", intervals: [0, 4, 8, 12] },
+  { id: "sus2", name: "Sus2", intervals: [0, 2, 7, 12] },
+  { id: "sus4", name: "Sus4", intervals: [0, 5, 7, 12] },
+  { id: "maj7", name: "Major 7", intervals: [0, 4, 7, 11] },
+  { id: "min7", name: "Minor 7", intervals: [0, 3, 7, 10] },
+  { id: "dom7", name: "Dominant 7", intervals: [0, 4, 7, 10] },
+  { id: "add9", name: "Add9", intervals: [0, 4, 7, 14] },
+  { id: "minadd9", name: "Minor Add9", intervals: [0, 3, 7, 14] },
+  { id: "dim7", name: "Diminished 7", intervals: [0, 3, 6, 9] },
 ];
+
+function buildChordDescription(rootPitchClass, intervals) {
+  return intervals
+    .map((interval) => PITCH_CLASS_NAMES[(rootPitchClass + interval) % 12])
+    .join(" ");
+}
+
+function buildChordEvents(intervals) {
+  const velocityMap = [0.84, 0.8, 0.76, 0.72, 0.68, 0.64];
+  return intervals.map((interval, index) => ({
+    step: 0,
+    semitone: interval,
+    velocity: velocityMap[Math.min(index, velocityMap.length - 1)],
+  }));
+}
+
+const CHORD_LIBRARY = CHORD_ROOTS.flatMap((root) => {
+  return CHORD_QUALITIES.map((quality) => ({
+    id: `${root.id}-${quality.id}`,
+    name: `${root.name} ${quality.name}`,
+    description: buildChordDescription(root.pitchClass, quality.intervals),
+    rootPitchClass: root.pitchClass,
+    events: buildChordEvents(quality.intervals),
+  }));
+});
 
 const TRACK_COLORS = ["#bf5f2f", "#1a7c79", "#a2413e", "#5f6fbb", "#b27a2d", "#3f8a52", "#9e3651", "#6e54a8"];
 
@@ -448,8 +422,23 @@ function getSelectedTrack() {
   return getTrackById(selectedTrackId) || tracks[0] || null;
 }
 
-function getGuideById(guideId) {
-  return PREMADE_GUIDES.find((guide) => guide.id === guideId) || null;
+function getChordById(chordId) {
+  return CHORD_LIBRARY.find((chord) => chord.id === chordId) || null;
+}
+
+function nearestMidiForPitchClass(anchorMidi, pitchClass) {
+  const normalizedAnchorClass = ((anchorMidi % 12) + 12) % 12;
+  let delta = pitchClass - normalizedAnchorClass;
+
+  while (delta > 6) {
+    delta -= 12;
+  }
+
+  while (delta < -6) {
+    delta += 12;
+  }
+
+  return anchorMidi + delta;
 }
 
 function createPattern() {
@@ -1528,35 +1517,36 @@ function renderPhraseLibrary() {
     return;
   }
 
-  ui.phraseLibrary.innerHTML = PREMADE_GUIDES.map((guide) => {
+  ui.phraseLibrary.innerHTML = CHORD_LIBRARY.map((chord) => {
     return `
-      <article class="phrase-card" draggable="true" data-guide-id="${guide.id}" aria-label="${escapeHtml(guide.name)}">
-        <div class="phrase-card-title">${escapeHtml(guide.name)}</div>
-        <div class="phrase-card-note">${escapeHtml(guide.description)}</div>
-        <button class="btn btn-subtle" type="button" data-guide-action="preview" data-guide-id="${guide.id}">Preview</button>
+      <article class="phrase-card" draggable="true" data-chord-id="${chord.id}" aria-label="${escapeHtml(chord.name)}">
+        <div class="phrase-card-title">${escapeHtml(chord.name)}</div>
+        <div class="phrase-card-note">${escapeHtml(chord.description)}</div>
+        <button class="btn btn-subtle" type="button" data-chord-action="preview" data-chord-id="${chord.id}">Preview</button>
       </article>
     `;
   }).join("");
 }
 
-async function previewGuide(guideId) {
-  const guide = getGuideById(guideId);
+async function previewChord(chordId) {
+  const chord = getChordById(chordId);
   const track = getSelectedTrack();
 
-  if (!guide || !track) {
+  if (!chord || !track) {
     return;
   }
 
   await ensureAudioReady();
 
   const baseMidi = 60;
+  const rootMidi = baseMidi + asNumber(chord.rootPitchClass, 0);
   const stepSeconds = Tone.Time("16n").toSeconds();
   const startTime = Tone.now() + 0.05;
   const minMidi = TOP_MIDI - (NOTE_COUNT - 1);
   const maxMidi = TOP_MIDI;
 
-  for (const event of guide.events) {
-    const targetMidi = clamp(baseMidi + asNumber(event.semitone, 0), minMidi, maxMidi);
+  for (const event of chord.events) {
+    const targetMidi = clamp(rootMidi + asNumber(event.semitone, 0), minMidi, maxMidi);
     const noteName = Tone.Frequency(targetMidi, "midi").toNote();
     const velocity = clamp01(asNumber(event.velocity, DEFAULT_NOTE_VELOCITY));
     triggerTrackAttackRelease(
@@ -1569,14 +1559,14 @@ async function previewGuide(guideId) {
     );
   }
 
-  setStatus(`Previewing guide: ${guide.name}.`);
+  setStatus(`Previewing chord: ${chord.name}.`);
 }
 
-function insertGuideAtCell(guideId, anchorNoteIndex, anchorStep) {
-  const guide = getGuideById(guideId);
+function insertChordAtCell(chordId, anchorNoteIndex, anchorStep) {
+  const chord = getChordById(chordId);
   const track = getSelectedTrack();
 
-  if (!guide || !track) {
+  if (!chord || !track) {
     return;
   }
 
@@ -1588,11 +1578,12 @@ function insertGuideAtCell(guideId, anchorNoteIndex, anchorStep) {
   pushHistorySilent();
 
   const anchorMidi = Math.round(Tone.Frequency(anchorNoteName).toMidi());
+  const rootMidi = nearestMidiForPitchClass(anchorMidi, asNumber(chord.rootPitchClass, 0));
   let written = 0;
 
-  for (const event of guide.events) {
+  for (const event of chord.events) {
     const step = (anchorStep + asNumber(event.step, 0)) % loopSteps;
-    const targetMidi = Math.round(anchorMidi + asNumber(event.semitone, 0));
+    const targetMidi = Math.round(rootMidi + asNumber(event.semitone, 0));
     const targetNoteIndex = midiNoteToPatternIndex(targetMidi);
 
     if (targetNoteIndex < 0) {
@@ -1606,9 +1597,9 @@ function insertGuideAtCell(guideId, anchorNoteIndex, anchorStep) {
   renderPianoRoll();
 
   if (written > 0) {
-    setStatus(`Inserted guide ${guide.name} into ${track.name}.`);
+    setStatus(`Inserted chord ${chord.name} into ${track.name}.`);
   } else {
-    setStatus(`Guide ${guide.name} could not fit in this note range.`, true);
+    setStatus(`Chord ${chord.name} could not fit in this note range.`, true);
   }
 }
 
@@ -1618,28 +1609,28 @@ function onPhraseLibraryDragStart(event) {
     return;
   }
 
-  const guideId = card.dataset.guideId;
-  if (!guideId) {
+  const chordId = card.dataset.chordId;
+  if (!chordId) {
     return;
   }
 
-  event.dataTransfer.setData(GUIDE_DRAG_MIME, guideId);
-  event.dataTransfer.setData("text/plain", guideId);
+  event.dataTransfer.setData(CHORD_DRAG_MIME, chordId);
+  event.dataTransfer.setData("text/plain", chordId);
   event.dataTransfer.effectAllowed = "copy";
 }
 
 function onPhraseLibraryClick(event) {
-  const button = event.target instanceof HTMLElement ? event.target.closest("button[data-guide-action='preview']") : null;
+  const button = event.target instanceof HTMLElement ? event.target.closest("button[data-chord-action='preview']") : null;
   if (!(button instanceof HTMLButtonElement)) {
     return;
   }
 
-  const guideId = button.dataset.guideId;
-  if (!guideId) {
+  const chordId = button.dataset.chordId;
+  if (!chordId) {
     return;
   }
 
-  previewGuide(guideId);
+  previewChord(chordId);
 }
 
 function onPianoRollDragOver(event) {
@@ -1649,8 +1640,8 @@ function onPianoRollDragOver(event) {
   }
 
   const transferTypes = Array.from(event.dataTransfer.types);
-  const hasGuidePayload = transferTypes.includes(GUIDE_DRAG_MIME) || transferTypes.includes("text/plain");
-  if (hasGuidePayload) {
+  const hasChordPayload = transferTypes.includes(CHORD_DRAG_MIME) || transferTypes.includes("text/plain");
+  if (hasChordPayload) {
     event.preventDefault();
     event.dataTransfer.dropEffect = "copy";
   }
@@ -1662,8 +1653,8 @@ function onPianoRollDrop(event) {
     return;
   }
 
-  const guideId = event.dataTransfer.getData(GUIDE_DRAG_MIME) || event.dataTransfer.getData("text/plain");
-  if (!guideId) {
+  const chordId = event.dataTransfer.getData(CHORD_DRAG_MIME) || event.dataTransfer.getData("text/plain");
+  if (!chordId) {
     return;
   }
 
@@ -1674,7 +1665,7 @@ function onPianoRollDrop(event) {
   }
 
   event.preventDefault();
-  insertGuideAtCell(guideId, noteIndex, stepIndex);
+  insertChordAtCell(chordId, noteIndex, stepIndex);
 }
 
 function renderPianoRoll() {
