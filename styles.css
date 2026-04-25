@@ -290,27 +290,10 @@ h2 {
 .transport {
   padding: 0.95rem 1.1rem;
   display: grid;
-  grid-template-columns: minmax(220px, 1.2fr) auto repeat(3, minmax(170px, 1fr));
+  grid-template-columns: auto repeat(3, minmax(170px, 1fr));
   gap: 0.8rem;
   align-items: center;
   background: var(--surface-soft);
-}
-
-.transport-title {
-  display: grid;
-  gap: 0.1rem;
-}
-
-.transport-title h1 {
-  font-size: clamp(1.5rem, 2.2vw, 2rem);
-  line-height: 0.95;
-  color: #eef4ff;
-}
-
-.transport-title p {
-  margin: 0;
-  color: var(--ink-soft);
-  font-size: 0.82rem;
 }
 
 .transport-cluster {
@@ -426,6 +409,11 @@ output {
 .composer,
 .mixer {
   padding: 1rem;
+  position: sticky;
+  top: 0.8rem;
+  align-self: start;
+  max-height: calc(100vh - 1.6rem);
+  overflow: hidden;
 }
 
 .composer {
@@ -648,12 +636,6 @@ output {
   max-height: 520px;
   overflow: auto;
   padding-right: 2px;
-}
-
-.composer-scroll-locked .track-list,
-.composer-scroll-locked .roll-scroll,
-.mixer-scroll-locked .mixer-strips {
-  overflow: hidden !important;
 }
 
 .mixer-strip {
@@ -1000,16 +982,18 @@ output {
     grid-template-columns: 1fr 1fr;
   }
 
-  .transport-title {
-    grid-column: 1 / -1;
-  }
-
   .transport-cluster {
     grid-column: 1 / -1;
   }
 
   .studio-layout {
     grid-template-columns: 1fr;
+  }
+
+  .composer,
+  .mixer {
+    position: static;
+    max-height: none;
   }
 }
 
