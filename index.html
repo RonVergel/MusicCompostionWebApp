@@ -1,0 +1,235 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Orchestrion Studio</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,500;1,600&family=Manrope:wght@400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="./styles.css" />
+    <script src="https://unpkg.com/tone@14.8.49/build/Tone.js"></script>
+    <script type="module" src="./app.js" defer></script>
+  </head>
+  <body>
+    <div class="bg-orb bg-orb-a" aria-hidden="true"></div>
+    <div class="bg-orb bg-orb-b" aria-hidden="true"></div>
+
+    <div class="app-shell">
+      <header class="hero card">
+        <div class="hero-rail hero-rail-left">
+          <span class="headphone-dot" aria-hidden="true">◜</span>
+          <span>Best with headphones</span>
+        </div>
+
+        <div class="hero-panels">
+          <article class="hero-panel hero-panel-intro">
+            <p class="hero-strap">Web Composition and Mixing Workstation</p>
+            <h1>Pleasure</h1>
+            <p class="hero-script">of the senses</p>
+            <p class="hero-footer">About Orchestrion</p>
+          </article>
+
+          <article class="hero-panel hero-panel-featured">
+            <h2>Orchestrion Studio</h2>
+            <p>Build cinematic motifs, full arrangements, and dynamic automation.</p>
+            <p class="hero-subline">Prelude in E major, rewritten by you</p>
+          </article>
+
+          <article class="hero-panel">
+            <h2>Compose</h2>
+            <p>Layer strings, brass, winds, choir, and percussion in a piano-roll score.</p>
+            <p class="hero-subline">Shape every bar with velocity accents</p>
+          </article>
+
+          <article class="hero-panel">
+            <h2>Mix</h2>
+            <p>Balance sections with volume, pan, mute, solo, and ambient send effects.</p>
+            <p class="hero-subline">Export sessions as JSON sketches</p>
+          </article>
+        </div>
+
+        <div class="hero-rail hero-rail-right">
+          <span>Share</span>
+        </div>
+      </header>
+
+      <section class="transport card" aria-label="Transport controls">
+        <div class="transport-cluster">
+          <button id="playBtn" class="btn btn-primary" type="button">Play</button>
+          <button id="stopBtn" class="btn" type="button">Stop</button>
+        </div>
+
+        <div class="control-group">
+          <label for="tempoSlider">Tempo</label>
+          <div class="control-inline">
+            <input id="tempoSlider" type="range" min="50" max="180" value="102" />
+            <output id="tempoValue" for="tempoSlider">102 BPM</output>
+          </div>
+        </div>
+
+        <div class="control-group">
+          <label for="swingSlider">Swing</label>
+          <div class="control-inline">
+            <input id="swingSlider" type="range" min="0" max="0.6" step="0.01" value="0" />
+            <output id="swingValue" for="swingSlider">0%</output>
+          </div>
+        </div>
+
+        <div class="control-group">
+          <label for="loopSelect">Loop Length</label>
+          <select id="loopSelect">
+            <option value="16">16 steps</option>
+            <option value="32" selected>32 steps</option>
+            <option value="48">48 steps</option>
+            <option value="64">64 steps</option>
+          </select>
+        </div>
+      </section>
+
+      <main class="studio-layout">
+        <section class="composer card" aria-label="Piano roll composer">
+          <div class="composer-top-row">
+            <h2>Composer</h2>
+            <div class="track-adder">
+              <input
+                id="trackNameInput"
+                type="text"
+                maxlength="24"
+                placeholder="Track name"
+                value="New Layer"
+              />
+              <select id="instrumentSelect" aria-label="Choose instrument"></select>
+              <button id="addTrackBtn" class="btn" type="button">Add Track</button>
+              <button id="clearTrackBtn" class="btn btn-subtle" type="button">Clear Selected</button>
+            </div>
+          </div>
+
+          <div id="trackList" class="track-list" aria-label="Track selector"></div>
+
+          <div class="roll-frame">
+            <div class="roll-scroll">
+              <div id="pianoRoll" class="piano-roll" aria-label="Piano roll grid"></div>
+            </div>
+          </div>
+        </section>
+
+        <aside class="mixer card" aria-label="Mixer">
+          <div class="mixer-header">
+            <h2>Mixer</h2>
+            <p>Mute, solo, pan, and send each section through ambience and delay.</p>
+          </div>
+          <div id="mixerStrips" class="mixer-strips"></div>
+
+          <div class="master-meter-wrap">
+            <div class="meter-label-row">
+              <span>Master Output</span>
+              <span id="masterPeak">-∞ dB</span>
+            </div>
+            <div class="master-meter">
+              <div id="masterMeterFill" class="master-meter-fill"></div>
+            </div>
+          </div>
+        </aside>
+      </main>
+
+      <section class="project-controls card" aria-label="Project controls">
+        <div class="project-actions">
+          <button id="saveLocalBtn" class="btn" type="button">Save Local</button>
+          <button id="loadLocalBtn" class="btn" type="button">Load Local</button>
+          <button id="exportBtn" class="btn" type="button">Export JSON</button>
+          <button id="importBtn" class="btn" type="button">Import JSON</button>
+          <input id="importFileInput" type="file" accept="application/json" hidden />
+        </div>
+        <p class="hint">Tip: Shift + click in the piano roll places an accented note.</p>
+        <p class="hint">Instruments stream from online FluidR3 soundfont APIs with synth fallback while loading.</p>
+
+        <div class="integration-grid">
+          <article class="integration-card" aria-label="MIDI integration">
+            <h3>Web MIDI Input</h3>
+            <p class="integration-note">
+              Connect a keyboard (including Yamaha MIDI devices), play live, and optionally capture
+              notes straight to the active track.
+            </p>
+
+            <div class="integration-controls">
+              <button id="midiConnectBtn" class="btn" type="button">Connect MIDI</button>
+              <button id="midiCaptureBtn" class="btn btn-subtle" type="button">Capture: Off</button>
+            </div>
+
+            <div class="integration-fields">
+              <label for="midiInputSelect">Input Device</label>
+              <select id="midiInputSelect" disabled>
+                <option value="">No device</option>
+              </select>
+
+              <label for="midiChannelSelect">MIDI Channel</label>
+              <select id="midiChannelSelect">
+                <option value="all" selected>All channels</option>
+                <option value="1">Channel 1</option>
+                <option value="2">Channel 2</option>
+                <option value="3">Channel 3</option>
+                <option value="4">Channel 4</option>
+                <option value="5">Channel 5</option>
+                <option value="6">Channel 6</option>
+                <option value="7">Channel 7</option>
+                <option value="8">Channel 8</option>
+                <option value="9">Channel 9</option>
+                <option value="10">Channel 10</option>
+                <option value="11">Channel 11</option>
+                <option value="12">Channel 12</option>
+                <option value="13">Channel 13</option>
+                <option value="14">Channel 14</option>
+                <option value="15">Channel 15</option>
+                <option value="16">Channel 16</option>
+              </select>
+            </div>
+
+            <p id="midiStatus" class="integration-feedback" role="status" aria-live="polite">
+              MIDI idle.
+            </p>
+          </article>
+
+          <article class="integration-card" aria-label="Yamaha API integration">
+            <h3>Yamaha Analysis API Bridge</h3>
+            <p class="integration-note">
+              Point this at your Yamaha-compatible analysis endpoint. Upload audio to fetch BPM,
+              key, and structure metadata.
+            </p>
+
+            <div class="integration-fields">
+              <label for="yamahaUrlInput">Endpoint URL</label>
+              <input
+                id="yamahaUrlInput"
+                type="text"
+                placeholder="https://api.your-provider.com/analyze"
+              />
+
+              <label for="yamahaAuthHeaderInput">Auth Header</label>
+              <input id="yamahaAuthHeaderInput" type="text" placeholder="x-api-key" />
+
+              <label for="yamahaAuthValueInput">Auth Value (optional)</label>
+              <input id="yamahaAuthValueInput" type="text" placeholder="Paste token or key" />
+            </div>
+
+            <div class="integration-controls">
+              <input id="yamahaAudioInput" type="file" accept="audio/*" />
+              <button id="yamahaAnalyzeBtn" class="btn" type="button">Analyze Audio</button>
+              <button id="yamahaApplyTempoBtn" class="btn btn-subtle" type="button">Apply BPM</button>
+            </div>
+
+            <p id="yamahaSummary" class="integration-feedback" role="status" aria-live="polite">
+              No Yamaha analysis loaded.
+            </p>
+            <pre id="yamahaResult" class="analysis-result" aria-label="Yamaha API output">{}</pre>
+          </article>
+        </div>
+      </section>
+
+      <p id="statusBar" class="status-bar" role="status" aria-live="polite"></p>
+    </div>
+  </body>
+</html>
