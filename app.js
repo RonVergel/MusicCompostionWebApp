@@ -2928,22 +2928,6 @@ function initialize() {
   refreshPlayButton();
 }
 
-function setComposerModalState(open) {
-  composerModalOpen = open;
-  document.body.classList.toggle("composer-modal-open", open);
-  if (ui.composerModalBackdrop) {
-    ui.composerModalBackdrop.hidden = !open;
-  }
-  if (ui.composerFullscreenBtn) {
-    ui.composerFullscreenBtn.setAttribute("aria-expanded", String(open));
-    ui.composerFullscreenBtn.textContent = open ? "Close Fullscreen" : "Open Fullscreen";
-  }
-}
-
-function toggleComposerModal() {
-  setComposerModalState(!composerModalOpen);
-}
-
 // Wire up the HTML modal close/open buttons
 const _modalOpenBtn = document.getElementById("openFullscreen");
 const _modalCloseBtn = document.getElementById("closeFullscreen");
