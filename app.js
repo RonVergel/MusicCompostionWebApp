@@ -2928,41 +2928,30 @@ function initialize() {
   refreshPlayButton();
 }
 
-const openBtn = document.getElementById("openFullscreen");
-const closeBtn = document.getElementById("closeFullscreen");
-const modal = document.getElementById("composerModal");
-const composer = document.getElementById("composerContainer");
-const modalWrapper = document.getElementById("modalComposerWrapper");
+function setComposerModalState(open) {
+  composerModalOpen = open;
+  document.body.classList.toggle("composer-modal-open", open);
+  if (ui.composerModalBackdrop) {
+    ui.composerModalBackdrop.hidden = !open;
+  }
+  if (ui.composerFullscreenBtn) {
+    ui.composerFullscreenBtn.setAttribute("aria-expanded", String(open));
+    ui.composerFullscreenBtn.textContent = open ? "Close Fullscreen" : "Open Fullscreen";
+  }
+}
 
-openBtn.onclick = () => {
-  modal.classList.add("active");
-  modalWrapper.appendChild(composer);
-};
+function toggleComposerModal() {
+  setComposerModalState(!composerModalOpen);
+}
 
-closeBtn.onclick = () => {
-  modal.classList.remove("active");
-  document.body.appendChild(composer);
-};
-
-const modal = document.getElementById("composerModal");
-const backdrop = document.getElementById("composerModalBackdrop");
-const openBtn = document.getElementById("openFullscreen");
-const closeBtn = document.getElementById("closeFullscreen");
-
-const composer = document.getElementById("composerContainer");
-const originalParent = composer.parentElement;
-const modalWrapper = document.getElementById("modalComposerWrapper");
-
-openBtn.onclick = () => {
-  modal.classList.add("active");
-  backdrop.hidden = false;
-  modalWrapper.appendChild(composer);
-};
-
-closeBtn.onclick = () => {
-  modal.classList.remove("active");
-  backdrop.hidden = true;
-  originalParent.appendChild(composer);
-};
+// Wire up the HTML modal close/open buttons
+const _modalOpenBtn = document.getElementById("openFullscreen");
+const _modalCloseBtn = document.getElementById("closeFullscreen");
+if (_modalOpenBtn) {
+  _modalOpenBtn.addEventListener("click", () => setComposerModalState(true));
+}
+if (_modalCloseBtn) {
+  _modalCloseBtn.addEventListener("click", () => setComposerModalState(false));
+}
 
 initialize();
