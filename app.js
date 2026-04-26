@@ -273,6 +273,8 @@ const ui = {
   yamahaSummary: document.getElementById("yamahaSummary"),
   yamahaResult: document.getElementById("yamahaResult"),
   statusBar: document.getElementById("statusBar"),
+  micPitchBtn: document.getElementById("micPitchBtn"),
+  micPitchResult: document.getElementById("micPitchResult"),
 };
 
 const fx = {
@@ -322,6 +324,10 @@ let metronomeEnabled = false;
 let countInEnabled = false;
 let countInStepsRemaining = 0;
 let didPaintInCurrentStroke = false;
+
+let pitchModel;
+let micStream;
+let isPitchDetecting = false;
 
 const HISTORY_LIMIT = 80;
 const historyState = {
@@ -497,6 +503,74 @@ function redoHistory() {
   restoreFromSnapshot(next, "redo snapshot");
   updateHistoryButtons();
   setStatus("Redo complete.");
+}
+
+async function togglePitchDetection() {
+  if (isPitchDetecting) {
+    stopPitchDetection();
+    return;
+  }
+
+  if (Tone.context.state !== "running") {
+    await Tone.context.resume();
+  }
+
+  try {
+    micStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+    const audioCtx = Tone.context.rawContext;
+    
+    setStatus("Loading ML5 CREPE Pitch Detection Model...");
+    ui.micPitchBtn.textContent = "Loading Model...";
+    
+    pitchModel = ml5.pitchDetection(
+      "https://cdn.jsdelivr.net/gh/ml5js/ml5-data-and-models/models/pitch-detection/crepe/",
+      audioCtx,
+      micStream,
+      () => {
+        isPitchDetecting = true;
+        ui.micPitchBtn.textContent = "Listening...";
+        ui.micPitchBtn.classList.add("btn-primary");
+        setStatus("Pitch Detection Active! Sing a note into your mic.");
+        getPitchLoop();
+      }
+    );
+  } catch (err) {
+    console.error(err);
+    setStatus("Microphone access denied or unavailable.");
+    ui.micPitchBtn.textContent = "Sing & ID Note";
+  }
+}
+
+function stopPitchDetection() {
+  isPitchDetecting = false;
+  if (micStream) {
+    micStream.getTracks().forEach(track => track.stop());
+  }
+  ui.micPitchBtn.textContent = "Sing & ID Note";
+  ui.micPitchBtn.classList.remove("btn-primary");
+  ui.micPitchResult.textContent = "";
+  setStatus("Pitch detection stopped.");
+}
+
+function getPitchLoop() {
+  if (!isPitchDetecting) return;
+  pitchModel.getPitch((err, frequency) => {
+    if (frequency && frequency > 60 && frequency < 1500) {
+      const midiNum = Math.round(69 + 12 * Math.log2(frequency / 440));
+      const index = midiNum - 36;
+      if (index >= 0 && index < NOTE_COUNT) {
+        ui.micPitchResult.textContent = NOTE_NAMES[index];
+      } else {
+        const notes = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
+        const octave = Math.floor(midiNum / 12) - 1;
+        const noteName = notes[midiNum % 12];
+        ui.micPitchResult.textContent = `${noteName}${octave}`;
+      }
+    } else {
+      ui.micPitchResult.textContent = "--";
+    }
+    setTimeout(getPitchLoop, 150);
+  });
 }
 
 function shiftTrackPattern(track, direction) {
@@ -2778,6 +2852,10 @@ function bindEvents() {
     ui.nudgeRightBtn.addEventListener("click", () => {
       nudgeSelectedTrack("right");
     });
+  }
+  
+  if (ui.micPitchBtn) {
+    ui.micPitchBtn.addEventListener("click", togglePitchDetection);
   }
 
   ui.saveLocalBtn.addEventListener("click", saveLocalProject);
