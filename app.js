@@ -599,11 +599,11 @@ function noteNameToSoundfontFile(noteName) {
 }
 
 const DRUM_SAMPLES = {
-  "Kick Drum": "https://tonejs.github.io/audio/drum-samples/CR78/kick.mp3",
-  "Snare Drum": "https://tonejs.github.io/audio/drum-samples/CR78/snare.mp3",
-  "Hi-Hat": "https://tonejs.github.io/audio/drum-samples/CR78/hihat.mp3",
-  "Toms": "https://tonejs.github.io/audio/drum-samples/CR78/tom1.mp3",
-  "Drum Machine": "https://tonejs.github.io/audio/drum-samples/CR78/kick.mp3",
+  "Kick Drum": "https://googlechromelabs.github.io/web-audio-samples/sounds/drum-samples/acoustic-kit/kick.wav",
+  "Snare Drum": "https://googlechromelabs.github.io/web-audio-samples/sounds/drum-samples/acoustic-kit/snare.wav",
+  "Hi-Hat": "https://googlechromelabs.github.io/web-audio-samples/sounds/drum-samples/acoustic-kit/hihat.wav",
+  "Toms": "https://googlechromelabs.github.io/web-audio-samples/sounds/drum-samples/acoustic-kit/tom1.wav",
+  "Drum Machine": "https://googlechromelabs.github.io/web-audio-samples/sounds/drum-samples/LINN/kick.wav",
 };
 
 function createSamplerForInstrument(instrumentName, onLoad, onError) {
